@@ -7,8 +7,8 @@ AC_DEFUN([AC_PROG_CC], [m4_errprint(__file__:__line__[: Something is trying to u
 dnl Needed for AC_PATH_PROGS_FEATURE_CHECK which was added in 2.62
 AC_PREREQ([2.62])
 dnl Keep the version number in sync with version.h!
-AC_INIT([znc], [1.7.x])
-LIBZNC_VERSION=1.7
+AC_INIT([znc], [1.8.x])
+LIBZNC_VERSION=1.8.x
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/znc.cpp])
 AC_LANG([C++])
@@ -368,8 +368,9 @@ if test "x$SSL" != "xno"; then
 		AC_LINK_IFELSE([
 			AC_LANG_PROGRAM([[
 				#include <openssl/ssl.h>
+				#include <openssl/dh.h>
 			]], [[
-				SSL_CTX* ctx = SSL_CTX_new(TLSv1_method());
+				SSL_CTX* ctx = SSL_CTX_new(SSLv23_method());
 				SSL* ssl = SSL_new(ctx);
 				DH* dh = DH_new();
 				DH_free(dh);

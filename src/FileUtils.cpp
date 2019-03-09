@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+ * Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -645,6 +645,9 @@ int CExecSock::popen2(int& iReadFD, int& iWriteFD, const CString& sCommand) {
     }
 
     if (iPid == 0) {
+        sigset_t signals;
+        sigemptyset(&signals);
+        sigprocmask(SIG_SETMASK, &signals, nullptr);
         close(wpipes[1]);
         close(rpipes[0]);
         dup2(wpipes[0], 0);

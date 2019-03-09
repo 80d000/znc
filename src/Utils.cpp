@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+ * Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,14 @@
 #include <znc/Message.h>
 #ifdef HAVE_LIBSSL
 #include <openssl/ssl.h>
-#include <memory>
+#include <openssl/bn.h>
+#include <openssl/rsa.h>
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L) || (LIBRESSL_VERSION_NUMBER < 0x20700000L)
+#define X509_getm_notBefore X509_get_notBefore
+#define X509_getm_notAfter X509_get_notAfter
+#endif
 #endif /* HAVE_LIBSSL */
+#include <memory>
 #include <unistd.h>
 #include <time.h>
 
@@ -93,8 +99,8 @@ void CUtils::GenerateCert(FILE* pOut, const CString& sHost) {
 
     X509_set_version(pCert.get(), 2);
     ASN1_INTEGER_set(X509_get_serialNumber(pCert.get()), serial);
-    X509_gmtime_adj(X509_get_notBefore(pCert.get()), 0);
-    X509_gmtime_adj(X509_get_notAfter(pCert.get()),
+    X509_gmtime_adj(X509_getm_notBefore(pCert.get()), 0);
+    X509_gmtime_adj(X509_getm_notAfter(pCert.get()),
                     (long)60 * 60 * 24 * days * years);
     X509_set_pubkey(pCert.get(), pKey.get());
 

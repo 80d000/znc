@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+ * Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ class CConfigWriteTimer;
 class CConfig;
 class CFile;
 
-class CZNC {
+class CZNC : private CCoreTranslationMixin {
   public:
     CZNC();
     ~CZNC();
@@ -253,6 +253,8 @@ class CZNC {
     static void DumpConfig(const CConfig* Config);
 
   private:
+    static CString FormatBindError();
+
     CFile* InitPidFile();
 
     bool ReadConfig(CConfig& config, CString& sError);

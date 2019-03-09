@@ -32,8 +32,7 @@ else
 	ZNCDIR=znc-$VERSION
 	TARGZ=$ZNCDIR.tar.gz
 	SIGN=1
-	DESC=""
-	# DESC="-rc1"
+	DESC="$(sed -En 's/set\(alpha_version "(.*)"\).*/\1/p' CMakeLists.txt)"
 fi
 
 TARGZ=`readlink -f -- $TARGZ`
@@ -51,7 +50,7 @@ cp -p third_party/Csocket/Csocket.cc third_party/Csocket/Csocket.h $TMPDIR/$ZNCD
 	cd $TMPDIR/$ZNCDIR
 	AUTOMAKE_FLAGS="--add-missing --copy" ./autogen.sh
 	rm -r autom4te.cache/
-	rm .travis* .appveyor*
+	rm -rf .travis* .appveyor* .ci/
 	rm make-tarball.sh
 	# For autoconf
 	sed -e "s/THIS_IS_NOT_TARBALL//" -i Makefile.in

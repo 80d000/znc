@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+ * Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -635,7 +635,7 @@ void CChan::SendBuffer(CClient* pClient, const CBuffer& Buffer) {
 
                 if (!bSkipStatusMsg) {
                     m_pNetwork->PutUser(":***!znc@znc.in PRIVMSG " + GetName() +
-                                            " :Buffer Playback...",
+                                            " :" + t_s("Buffer Playback..."),
                                         pUseClient);
                 }
 
@@ -673,7 +673,7 @@ void CChan::SendBuffer(CClient* pClient, const CBuffer& Buffer) {
                                   &bSkipStatusMsg);
                 if (!bSkipStatusMsg) {
                     m_pNetwork->PutUser(":***!znc@znc.in PRIVMSG " + GetName() +
-                                            " :Playback Complete.",
+                                            " :" + t_s("Playback Complete."),
                                         pUseClient);
                 }
 

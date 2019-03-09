@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+ * Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -335,7 +335,7 @@ CModule* TModLoad(ModHandle p, CUser* pUser, CIRCNetwork* pNetwork,
 }
 
 /** A helper class for handling commands in modules. */
-class CModCommand {
+class CModCommand : private CCoreTranslationMixin {
   public:
     /// Type for the callback function that handles the actual command.
     typedef void (CModule::*ModCmdFunc)(const CString& sLine);
@@ -1052,12 +1052,18 @@ class CModule {
 
     ModHandle GetDLL() { return m_pDLL; }
 
-    /** This function sends a given raw IRC line to the IRC server, if we
+    /** This function sends a given IRC line to the IRC server, if we
      *  are connected to one. Else this line is discarded.
      *  @param sLine The line which should be sent.
      *  @return true if the line was queued for sending.
      */
     virtual bool PutIRC(const CString& sLine);
+    /** This function sends a given IRC message to the IRC server, if we
+     *  are connected to one. Else this message is discarded.
+     *  @param Message The message which should be sent.
+     *  @return true if the message was queued for sending.
+     */
+    virtual bool PutIRC(const CMessage& Message);
     /** This function sends a given raw IRC line to a client.
      *  If we are in a module hook which is called for a specific client,
      *  only that client will get the line, else all connected clients will
@@ -1380,7 +1386,7 @@ class CModule {
     std::map<CString, CModCommand> m_mCommands;
 };
 
-class CModules : public std::vector<CModule*> {
+class CModules : public std::vector<CModule*>, private CCoreTranslationMixin {
   public:
     CModules();
     ~CModules();

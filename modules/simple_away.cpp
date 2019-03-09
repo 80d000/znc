@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+ * Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -211,7 +211,7 @@ class CSimpleAway : public CModule {
         if (sReason.empty()) sReason = SIMPLE_AWAY_DEFAULT_REASON;
 
         time_t iTime = time(nullptr);
-        CString sTime = CUtils::CTime(iTime, GetUser()->GetTimezone());
+        CString sTime = CUtils::CTime(iTime, "Etc/UTC") + " UTC";
         sReason.Replace("%awaytime%", sTime);
         sReason = ExpandString(sReason);
         sReason.Replace("%s", sTime);  // Backwards compatibility with previous

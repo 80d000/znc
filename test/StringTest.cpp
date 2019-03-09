@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+ * Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,6 @@
 
 #include <gtest/gtest.h>
 #include <znc/ZNCString.h>
-
-// GTest uses this function to output objects
-static void PrintTo(const CString& s, std::ostream* o) {
-    *o << '"' << s.Escape_n(CString::EASCII, CString::EDEBUG) << '"';
-}
 
 class EscapeTest : public ::testing::Test {
   protected:

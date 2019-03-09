@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+ * Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include <znc/Utils.h>
 #include <znc/Buffer.h>
 #include <znc/Nick.h>
+#include <znc/Translation.h>
 #include <set>
 #include <vector>
 
@@ -34,9 +35,9 @@ class CIRCSock;
 class CUserTimer;
 class CServer;
 
-class CUser {
+class CUser : private CCoreTranslationMixin {
   public:
-    CUser(const CString& sUserName);
+    CUser(const CString& sUsername);
     ~CUser();
 
     CUser(const CUser&) = delete;
@@ -67,8 +68,12 @@ class CUser {
     void ClearAllowedHosts();
     bool IsHostAllowed(const CString& sHost) const;
     bool IsValid(CString& sErrMsg, bool bSkipPass = false) const;
-    static bool IsValidUserName(const CString& sUserName);
-    static CString MakeCleanUserName(const CString& sUserName);
+    static bool IsValidUsername(const CString& sUsername);
+    /** @deprecated Use IsValidUsername() instead. */
+    static bool IsValidUserName(const CString& sUsername);
+    static CString MakeCleanUsername(const CString& sUsername);
+    /** @deprecated Use MakeCleanUsername() instead. */
+    static CString MakeCleanUserName(const CString& sUsername);
 
     // Modules
     CModules& GetModules() { return *m_pModules; }
@@ -163,7 +168,9 @@ class CUser {
     // Getters
     const std::vector<CClient*>& GetUserClients() const { return m_vClients; }
     std::vector<CClient*> GetAllClients() const;
+    /** @deprecated Use GetUsername() instead. */
     const CString& GetUserName() const;
+    const CString& GetUsername() const;
     const CString& GetCleanUserName() const;
     const CString& GetNick(bool bAllowDefault = true) const;
     const CString& GetAltNick(bool bAllowDefault = true) const;
@@ -219,8 +226,8 @@ class CUser {
     // !Getters
 
   protected:
-    const CString m_sUserName;
-    const CString m_sCleanUserName;
+    const CString m_sUsername;
+    const CString m_sCleanUsername;
     CString m_sNick;
     CString m_sAltNick;
     CString m_sIdent;

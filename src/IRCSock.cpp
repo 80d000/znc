@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+ * Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ CIRCSock::CIRCSock(CIRCNetwork* pNetwork)
       m_lastCTCP(0),
       m_uNumCTCP(0),
       m_mISupport(),
-      m_vsSendQueue(),
+      m_vSendQueue(),
       m_iSendsAllowed(pNetwork->GetFloodBurst()),
       m_uFloodBurst(pNetwork->GetFloodBurst()),
       m_fFloodRate(pNetwork->GetFloodRate()),
@@ -156,9 +156,10 @@ void CIRCSock::Quit(const CString& sQuitMsg) {
 void CIRCSock::ReadLine(const CString& sData) {
     CString sLine = sData;
 
-    sLine.TrimRight("\n\r");
+    sLine.Replace("\n", "");
+    sLine.Replace("\r", "");
 
-    DEBUG("(" << m_pNetwork->GetUser()->GetUserName() << "/"
+    DEBUG("(" << m_pNetwork->GetUser()->GetUsername() << "/"
               << m_pNetwork->GetName() << ") IRC -> ZNC [" << sLine << "]");
 
     bool bReturn = false;
@@ -428,7 +429,12 @@ bool CIRCSock::OnCTCPMessage(CCTCPMessage& Message) {
         if (pChan) {
             Message.SetChan(pChan);
             FixupChanNick(Message.GetNick(), pChan);
-            IRCSOCKMODULECALL(OnChanCTCPMessage(Message), &bResult);
+            if (Message.IsReply()) {
+                IRCSOCKMODULECALL(OnCTCPReplyMessage(Message), &bResult);
+                return bResult;
+            } else {
+                IRCSOCKMODULECALL(OnChanCTCPMessage(Message), &bResult);
+            }
             if (bResult) return true;
         }
     }
@@ -481,7 +487,7 @@ bool CIRCSock::OnCTCPMessage(CCTCPMessage& Message) {
 bool CIRCSock::OnErrorMessage(CMessage& Message) {
     // ERROR :Closing Link: nick[24.24.24.24] (Excess Flood)
     CString sError = Message.GetParam(0);
-    m_pNetwork->PutStatus("Error from Server [" + sError + "]");
+    m_pNetwork->PutStatus(t_f("Error from server: {1}")(sError));
     return true;
 }
 
@@ -682,8 +688,8 @@ bool CIRCSock::OnNumericMessage(CNumericMessage& Message) {
             if (m_bAuthed && sServer == "irc.znc.in") {
                 // m_bAuthed == true => we already received another 001 => we
                 // might be in a traffic loop
-                m_pNetwork->PutStatus(
-                    "ZNC seems to be connected to itself, disconnecting...");
+                m_pNetwork->PutStatus(t_s(
+                    "ZNC seems to be connected to itself, disconnecting..."));
                 Quit();
                 return true;
             }
@@ -730,11 +736,11 @@ bool CIRCSock::OnNumericMessage(CNumericMessage& Message) {
             CString sPort = Message.GetParam(2);
             CString sInfo = Message.GetParam(3);
             m_pNetwork->PutStatus(
-                "Server [" + m_pNetwork->GetCurrentServer()->GetString(false) +
-                "] redirects us to [" + sHost + ":" + sPort +
-                "] with reason [" + sInfo + "]");
+                t_f("Server {1} redirects us to {2}:{3} with reason: {4}")(
+                    m_pNetwork->GetCurrentServer()->GetString(false), sHost,
+                    sPort, sInfo));
             m_pNetwork->PutStatus(
-                "Perhaps you want to add it as a new server.");
+                t_s("Perhaps you want to add it as a new server."));
             // Don't send server redirects to the client
             return true;
         }
@@ -761,7 +767,7 @@ bool CIRCSock::OnNumericMessage(CNumericMessage& Message) {
             CChan* pChan = m_pNetwork->FindChan(Message.GetParam(1));
 
             if (pChan) {
-                pChan->SetModes(Message.GetParams(2));
+                pChan->SetModes(Message.GetParamsColon(2));
 
                 // We don't SetModeKnown(true) here,
                 // because a 329 will follow
@@ -963,9 +969,9 @@ bool CIRCSock::OnNumericMessage(CNumericMessage& Message) {
             }
             if (pChan) {
                 pChan->Disable();
-                m_pNetwork->PutStatus("Channel [" + pChan->GetName() +
-                                      "] is linked to "
-                                      "another channel and was thus disabled.");
+                m_pNetwork->PutStatus(
+                    t_f("Channel {1} is linked to another channel and was thus "
+                        "disabled.")(pChan->GetName()));
             }
             break;
         }
@@ -976,7 +982,7 @@ bool CIRCSock::OnNumericMessage(CNumericMessage& Message) {
             // TLS
             if (!GetSSL()) {
                 StartTLS();
-                m_pNetwork->PutStatus("Switched to SSL (STARTTLS)");
+                m_pNetwork->PutStatus(t_s("Switched to SSL (STARTTLS)"));
             }
 
             return true;
@@ -1029,7 +1035,7 @@ bool CIRCSock::OnQuitMessage(CQuitMessage& Message) {
     bool bIsVisible = false;
 
     if (Nick.NickEquals(GetNick())) {
-        m_pNetwork->PutStatus("You quit [" + Message.GetReason() + "]");
+        m_pNetwork->PutStatus(t_f("You quit: {1}")(Message.GetReason()));
         // We don't call module hooks and we don't
         // forward this quit to clients (Some clients
         // disconnect if they receive such a QUIT)
@@ -1131,14 +1137,18 @@ bool CIRCSock::OnWallopsMessage(CMessage& Message) {
 }
 
 void CIRCSock::PutIRC(const CString& sLine) {
+    PutIRC(CMessage(sLine));
+}
+
+void CIRCSock::PutIRC(const CMessage& Message) {
     // Only print if the line won't get sent immediately (same condition as in
     // TrySend()!)
     if (m_bFloodProtection && m_iSendsAllowed <= 0) {
-        DEBUG("(" << m_pNetwork->GetUser()->GetUserName() << "/"
+        DEBUG("(" << m_pNetwork->GetUser()->GetUsername() << "/"
                   << m_pNetwork->GetName() << ") ZNC -> IRC ["
-                  << CDebug::Filter(sLine) << "] (queued)");
+                  << CDebug::Filter(Message.ToString()) << "] (queued)");
     }
-    m_vsSendQueue.push_back(sLine);
+    m_vSendQueue.push_back(Message);
     TrySend();
 }
 
@@ -1146,37 +1156,49 @@ void CIRCSock::PutIRCQuick(const CString& sLine) {
     // Only print if the line won't get sent immediately (same condition as in
     // TrySend()!)
     if (m_bFloodProtection && m_iSendsAllowed <= 0) {
-        DEBUG("(" << m_pNetwork->GetUser()->GetUserName() << "/"
+        DEBUG("(" << m_pNetwork->GetUser()->GetUsername() << "/"
                   << m_pNetwork->GetName() << ") ZNC -> IRC ["
                   << CDebug::Filter(sLine) << "] (queued to front)");
     }
-    m_vsSendQueue.push_front(sLine);
+    m_vSendQueue.emplace_front(sLine);
     TrySend();
 }
 
 void CIRCSock::TrySend() {
     // This condition must be the same as in PutIRC() and PutIRCQuick()!
-    while (!m_vsSendQueue.empty() &&
+    while (!m_vSendQueue.empty() &&
            (!m_bFloodProtection || m_iSendsAllowed > 0)) {
         m_iSendsAllowed--;
-        bool bSkip = false;
-        CString& sLine = m_vsSendQueue.front();
+        CMessage& Message = m_vSendQueue.front();
 
-        CMessage Message(sLine);
+        MCString mssTags;
+        for (const auto& it : Message.GetTags()) {
+            if (IsTagEnabled(it.first)) {
+                mssTags[it.first] = it.second;
+            }
+        }
+        Message.SetTags(mssTags);
         Message.SetNetwork(m_pNetwork);
+
+        bool bSkip = false;
         IRCSOCKMODULECALL(OnSendToIRCMessage(Message), &bSkip);
 
         if (!bSkip) {
-            CString sCopy = Message.ToString();
-            IRCSOCKMODULECALL(OnSendToIRC(sCopy), &bSkip);
-            if (!bSkip) {
-                DEBUG("(" << m_pNetwork->GetUser()->GetUserName() << "/"
-                        << m_pNetwork->GetName() << ") ZNC -> IRC ["
-                        << CDebug::Filter(sCopy) << "]");
-                Write(sCopy + "\r\n");
-            }
+            PutIRCRaw(Message.ToString());
         }
-        m_vsSendQueue.pop_front();
+        m_vSendQueue.pop_front();
+    }
+}
+
+void CIRCSock::PutIRCRaw(const CString& sLine) {
+    CString sCopy = sLine;
+    bool bSkip = false;
+    IRCSOCKMODULECALL(OnSendToIRC(sCopy), &bSkip);
+    if (!bSkip) {
+        DEBUG("(" << m_pNetwork->GetUser()->GetUsername() << "/"
+                  << m_pNetwork->GetName() << ") ZNC -> IRC ["
+                  << CDebug::Filter(sCopy) << "]");
+        Write(sCopy + "\r\n");
     }
 }
 
@@ -1219,7 +1241,7 @@ void CIRCSock::Disconnected() {
     if (!m_pNetwork->GetUser()->IsBeingDeleted() &&
         m_pNetwork->GetIRCConnectEnabled() &&
         m_pNetwork->GetServers().size() != 0) {
-        m_pNetwork->PutStatus("Disconnected from IRC. Reconnecting...");
+        m_pNetwork->PutStatus(t_s("Disconnected from IRC. Reconnecting..."));
     }
     m_pNetwork->ClearRawBuffer();
     m_pNetwork->ClearMotdBuffer();
@@ -1249,11 +1271,11 @@ void CIRCSock::SockError(int iErrno, const CString& sDescription) {
     DEBUG(GetSockName() << " == SockError(" << iErrno << " " << sError << ")");
     if (!m_pNetwork->GetUser()->IsBeingDeleted()) {
         if (GetConState() != CST_OK) {
-            m_pNetwork->PutStatus("Cannot connect to IRC (" + sError +
-                                  "). Retrying...");
+            m_pNetwork->PutStatus(
+                t_f("Cannot connect to IRC ({1}). Retrying...")(sError));
         } else {
-            m_pNetwork->PutStatus("Disconnected from IRC (" + sError +
-                                  "). Reconnecting...");
+            m_pNetwork->PutStatus(
+                t_f("Disconnected from IRC ({1}). Reconnecting...")(sError));
         }
 #ifdef HAVE_LIBSSL
         if (iErrno == errnoBadSSLCert) {
@@ -1283,9 +1305,8 @@ void CIRCSock::SockError(int iErrno, const CString& sDescription) {
                 CString sSHA256 = GetSSLPeerFingerprint();
                 m_pNetwork->PutStatus("SHA-256: " + sSHA256);
                 m_pNetwork->PutStatus(
-                    "If you trust this certificate, do /znc "
-                    "AddTrustedServerFingerprint " +
-                    sSHA256);
+                    t_f("If you trust this certificate, do /znc "
+                        "AddTrustedServerFingerprint {1}")(sSHA256));
             }
         }
 #endif
@@ -1300,7 +1321,8 @@ void CIRCSock::SockError(int iErrno, const CString& sDescription) {
 void CIRCSock::Timeout() {
     DEBUG(GetSockName() << " == Timeout()");
     if (!m_pNetwork->GetUser()->IsBeingDeleted()) {
-        m_pNetwork->PutStatus("IRC connection timed out.  Reconnecting...");
+        m_pNetwork->PutStatus(
+            t_s("IRC connection timed out.  Reconnecting..."));
     }
     m_pNetwork->ClearRawBuffer();
     m_pNetwork->ClearMotdBuffer();
@@ -1312,7 +1334,7 @@ void CIRCSock::Timeout() {
 void CIRCSock::ConnectionRefused() {
     DEBUG(GetSockName() << " == ConnectionRefused()");
     if (!m_pNetwork->GetUser()->IsBeingDeleted()) {
-        m_pNetwork->PutStatus("Connection Refused.  Reconnecting...");
+        m_pNetwork->PutStatus(t_s("Connection Refused.  Reconnecting..."));
     }
     m_pNetwork->ClearRawBuffer();
     m_pNetwork->ClearMotdBuffer();
@@ -1320,7 +1342,7 @@ void CIRCSock::ConnectionRefused() {
 
 void CIRCSock::ReachedMaxBuffer() {
     DEBUG(GetSockName() << " == ReachedMaxBuffer()");
-    m_pNetwork->PutStatus("Received a too long line from the IRC server!");
+    m_pNetwork->PutStatus(t_s("Received a too long line from the IRC server!"));
     Quit();
 }
 
@@ -1424,7 +1446,7 @@ void CIRCSock::SendAltNick(const CString& sBadNick) {
     } else {
         char cLetter = 0;
         if (sBadNick.empty()) {
-            m_pNetwork->PutUser("No free nick available");
+            m_pNetwork->PutUser(t_s("No free nick available"));
             Quit();
             return;
         }
@@ -1432,7 +1454,7 @@ void CIRCSock::SendAltNick(const CString& sBadNick) {
         cLetter = sBadNick.back();
 
         if (cLetter == 'z') {
-            m_pNetwork->PutUser("No free nick found");
+            m_pNetwork->PutUser(t_s("No free nick found"));
             Quit();
             return;
         }
@@ -1473,3 +1495,12 @@ void CIRCSock::ResetChans() {
         it.second->Reset();
     }
 }
+
+void CIRCSock::SetTagSupport(const CString& sTag, bool bState) {
+    if (bState) {
+        m_ssSupportedTags.insert(sTag);
+    } else {
+        m_ssSupportedTags.erase(sTag);
+    }
+}
+

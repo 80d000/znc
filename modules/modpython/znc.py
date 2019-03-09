@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+# Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -676,8 +676,9 @@ def make_inherit(cl, parent, attr):
         for x in parent.__dict__:
             if not x.startswith('_') and x not in cl.__dict__:
                 setattr(cl, x, make_caller(parent, x, attr))
-        if '_s' in parent.__dict__:
-            parent = parent._s
+        if parent.__bases__:
+            # Multiple inheritance is not supported (yet?)
+            parent = parent.__bases__[0]
         else:
             break
 

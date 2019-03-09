@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,10 +19,10 @@ limitations under the License.
 #ifndef BUILD_WITH_CMAKE
 // The following defines are for #if comparison (preprocessor only likes ints)
 #define VERSION_MAJOR 1
-#define VERSION_MINOR 7
+#define VERSION_MINOR 8
 #define VERSION_PATCH -1
 // This one is for display purpose and to check ABI compatibility of modules
-#define VERSION_STR "1.7.x"
+#define VERSION_STR "1.8.x"
 #endif
 
 // Don't use this one

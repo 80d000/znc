@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+ * Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -300,7 +300,7 @@ class CModTcl : public CModule {
 
     static int tcl_GetUsername STDVAR {
         CModTcl* mod = static_cast<CModTcl*>(cd);
-        Tcl_SetResult(irp, (char*)mod->GetUser()->GetUserName().c_str(),
+        Tcl_SetResult(irp, (char*)mod->GetUser()->GetUsername().c_str(),
                       TCL_VOLATILE);
         return TCL_OK;
     }

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+# Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ set_target_properties(znclib ${znc_link} PROPERTIES
 # The following options are relevant only on cygwin
 set_target_properties(znclib PROPERTIES
 	OUTPUT_NAME "znc"
-	SOVERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
+	SOVERSION "${ZNC_VERSION}")
 
 # CMake started supporting metafeature cxx_std_11 only in 3.8
 set(required_cxx11_features

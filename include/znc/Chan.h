@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+ * Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include <znc/Nick.h>
 #include <znc/ZNCString.h>
 #include <znc/Buffer.h>
+#include <znc/Translation.h>
 #include <map>
 
 // Forward Declarations
@@ -31,7 +32,7 @@ class CConfig;
 class CFile;
 // !Forward Declarations
 
-class CChan {
+class CChan : private CCoreTranslationMixin {
   public:
     typedef enum {
         Voice = '+',

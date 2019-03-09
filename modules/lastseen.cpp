@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2018 ZNC, see the NOTICE file for details.
+ * Copyright (C) 2004-2019 ZNC, see the NOTICE file for details.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,11 +25,11 @@ using std::multimap;
 class CLastSeenMod : public CModule {
   private:
     time_t GetTime(const CUser* pUser) {
-        return GetNV(pUser->GetUserName()).ToULong();
+        return GetNV(pUser->GetUsername()).ToULong();
     }
 
     void SetTime(const CUser* pUser) {
-        SetNV(pUser->GetUserName(), CString(time(nullptr)));
+        SetNV(pUser->GetUsername(), CString(time(nullptr)));
     }
 
     const CString FormatLastSeen(const CUser* pUser,
@@ -88,7 +88,7 @@ class CLastSeenMod : public CModule {
     void OnClientDisconnect() override { SetTime(GetUser()); }
 
     EModRet OnDeleteUser(CUser& User) override {
-        DelNV(User.GetUserName());
+        DelNV(User.GetUsername());
         return CONTINUE;
     }
 
@@ -118,7 +118,7 @@ class CLastSeenMod : public CModule {
                 CUser* pUser = it->second;
                 CTemplate& Row = Tmpl.AddRow("UserLoop");
 
-                Row["Username"] = pUser->GetUserName();
+                Row["Username"] = pUser->GetUsername();
                 Row["IsSelf"] =
                     CString(pUser == WebSock.GetSession()->GetUser());
                 Row["LastSeen"] = FormatLastSeen(pUser, t_s("never"));
